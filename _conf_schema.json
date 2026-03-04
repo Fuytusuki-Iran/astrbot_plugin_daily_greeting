@@ -2,8 +2,13 @@
   "group_ids": {
     "description": "要发送问候的 QQ 群号列表（多个群号）",
     "type": "list",
-    "default": [],
+    "default": ["1090038967"],
     "items": { "type": "string", "description": "QQ群号" }
+  },
+  "bot_qq": {
+    "description": "你的 Bot 自己的 QQ 号（从 /greeting_get_umo 打印的前半部分，例如 1071711189）",
+    "type": "string",
+    "default": "1071711189"
   },
   "morning_time": {
     "description": "早上问候时间 (HH:MM)",
@@ -16,27 +21,15 @@
     "default": "23:00"
   },
   "morning_msgs": {
-    "description": "早安问候语列表（随机挑选一条）",
+    "description": "早安问候语列表",
     "type": "list",
-    "default": [
-      "🌞 早安呀~ 新的一天开始了，今天也要元气满满哦！",
-      "早上好！记得吃早餐，爱你哟～",
-      "☀️ 早安！希望你今天一切顺利，加油！"
-    ],
-    "items": {
-      "type": "string"
-    }
+    "default": ["🌞 早安呀~ 新的一天开始了，今天也要元气满满哦！","早上好！记得吃早餐，爱你哟～","☀️ 早安！希望你今天一切顺利，加油！"],
+    "items": { "type": "string" }
   },
   "night_msgs": {
-    "description": "晚安问候语列表（随机挑选一条）",
+    "description": "晚安问候语列表",
     "type": "list",
-    "default": [
-      "🌤️ 晚安好～ 忙碌的一天也要记得休息一下呀",
-      "晚安茶时间到了，喝杯水放松放松～",
-      "💪 晚安好！继续加油，晚上见！"
-    ],
-    "items": {
-      "type": "string"
-    }
+    "default": ["🌙 晚安呀~ 早点休息，明天也要元气满满哦！","夜深了，睡觉吧，明天见～","💤 晚安！做个好梦，爱你哟"],
+    "items": { "type": "string" }
   }
 }
