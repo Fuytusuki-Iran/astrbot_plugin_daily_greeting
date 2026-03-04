@@ -19,23 +19,23 @@ class DailyGreeting(Star):
         self.start_scheduler()
         logger.info("【每日问候 测试版】已加载")
         logger.info(f"   配置群号: {self.config.get('group_ids', [])}")
-        logger.info(f"   早上时间: {self.config.get('morning_time')} | 下午时间: {self.config.get('afternoon_time')}")
-        logger.info("   测试指令可用：/greeting_test_morning 和 /greeting_test_afternoon")
+        logger.info(f"   早上时间: {self.config.get('morning_time')} | 下午时间: {self.config.get('night_time')}")
+        logger.info("   测试指令可用：/greeting_test_morning 和 /greeting_test_night")
 
     def start_scheduler(self):
         try:
             mh, mm = map(int, self.config["morning_time"].split(":"))
-            ah, am = map(int, self.config["afternoon_time"].split(":"))
+            ah, am = map(int, self.config["night_time"].split(":"))
 
             self.scheduler.add_job(self.send_morning, CronTrigger(hour=mh, minute=mm))
-            self.scheduler.add_job(self.send_afternoon, CronTrigger(hour=ah, minute=am))
+            self.scheduler.add_job(self.send_night, CronTrigger(hour=ah, minute=am))
             self.scheduler.start()
             logger.info("【每日问候】定时任务已启动 ✅")
         except Exception as e:
             logger.error(f"启动定时任务失败: {e}")
 
     async def send_greeting(self, is_morning: bool):
-        msgs = self.config["morning_msgs"] if is_morning else self.config["afternoon_msgs"]
+        msgs = self.config["morning_msgs"] if is_morning else self.config["night_msgs"]
         if not msgs:
             logger.warning("问候语列表为空")
             return
@@ -59,7 +59,7 @@ class DailyGreeting(Star):
     async def send_morning(self):
         await self.send_greeting(True)
 
-    async def send_afternoon(self):
+    async def send_night(self):
         await self.send_greeting(False)
 
     # ====================== 测试指令 ======================
@@ -69,8 +69,8 @@ class DailyGreeting(Star):
         await self.send_greeting(True)
         yield event.plain_result("✅ 早安测试发送完成！请检查群内消息")
 
-    @filter.command("greeting_test_afternoon")
-    async def test_afternoon(self, event: AstrMessageEvent):
+    @filter.command("greeting_test_night")
+    async def test_night(self, event: AstrMessageEvent):
         yield event.plain_result("🚀 正在测试发送【下午好】消息...")
         await self.send_greeting(False)
         yield event.plain_result("✅ 下午好测试发送完成！请检查群内消息")
@@ -82,7 +82,7 @@ class DailyGreeting(Star):
         txt = "📋 当前配置：\n"
         txt += f"群号：{', '.join(groups) if groups else '空'}\n"
         txt += f"早上：{self.config.get('morning_time')}\n"
-        txt += f"下午：{self.config.get('afternoon_time')}\n"
+        txt += f"下午：{self.config.get('night_time')}\n"
         txt += "测试指令：/greeting_test_morning"
         yield event.plain_result(txt)
 

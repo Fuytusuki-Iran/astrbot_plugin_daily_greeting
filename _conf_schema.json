@@ -13,8 +13,8 @@
     "type": "string",
     "default": "08:00"
   },
-  "afternoon_time": {
-    "description": "下午问候时间 (HH:MM，24小时制)",
+  "night_time": {
+    "description": "晚安问候时间 (HH:MM，24小时制)",
     "type": "string",
     "default": "17:30"
   },
@@ -30,13 +30,13 @@
       "type": "string"
     }
   },
-  "afternoon_msgs": {
-    "description": "下午问候语列表（随机挑选一条）",
+  "night_msgs": {
+    "description": "晚安问候语列表（随机挑选一条）",
     "type": "list",
     "default": [
-      "🌤️ 下午好～ 忙碌的一天也要记得休息一下呀",
-      "下午茶时间到了，喝杯水放松放松～",
-      "💪 下午好！继续加油，晚上见！"
+      "🌤️ 晚安好～ 忙碌的一天也要记得休息一下呀",
+      "晚安茶时间到了，喝杯水放松放松～",
+      "💪 晚安好！继续加油，晚上见！"
     ],
     "items": {
       "type": "string"
