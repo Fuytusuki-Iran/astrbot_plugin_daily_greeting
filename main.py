@@ -7,8 +7,7 @@ from astrbot.core.message.message_event_result import MessageChain
 import random
 import asyncio
 
-
-@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 测试版）", "1.3.0-test",
+@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 调试版）", "1.4.0-test",
           "https://github.com/你的/astrbot_plugin_daily_greeting")
 class DailyGreeting(Star):
     def __init__(self, context: Context, config):
@@ -17,10 +16,10 @@ class DailyGreeting(Star):
         self.scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
 
         self.start_scheduler()
-        logger.info("【每日问候 测试版】已加载")
+        logger.info("【每日问候 调试版】已加载")
         logger.info(f"   配置群号: {self.config.get('group_ids', [])}")
         logger.info(f"   早上时间: {self.config.get('morning_time')} | 晚安时间: {self.config.get('night_time')}")
-        logger.info("   测试指令可用：/greeting_test_morning 和 /greeting_test_night")
+        logger.info("   测试指令：/greeting_test_morning、/greeting_test_night、/greeting_get_umo")
 
     def start_scheduler(self):
         try:
@@ -40,8 +39,7 @@ class DailyGreeting(Star):
             logger.warning("问候语列表为空")
             return
         msg = random.choice(msgs)
-        # 固定正确：无 plain 方法，直接传文本初始化 MessageChain
-        chain = MessageChain(msg)
+        chain = MessageChain().plain(msg)          # ← 正确初始化方式
 
         group_ids = self.config.get("group_ids", [])
         if not group_ids:
@@ -49,14 +47,13 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            # 终极修复：三段式格式 + 合法的 MessageType（group_msg）
-            # 格式：Chrono_QQ（bot实例）:group_msg（群聊类型）:群号（ID）
-            umo = f"Chrono_QQ:group_msg:{gid}"
+            # 先尝试最常见的 Chrono_QQ 群聊格式（如果不对，下面调试指令会告诉你真实格式）
+            umo = f"Chrono_QQ:group:{gid}"
             
             try:
                 await self.context.send_message(umo, chain)
                 logger.info(f"✅ 已向群 {gid} 发送 {'早安' if is_morning else '晚安'}：{msg[:30]}...")
-                await asyncio.sleep(1.2)  # 防风控
+                await asyncio.sleep(1.2)
             except Exception as e:
                 logger.error(f"向群 {gid} 发送失败: {e}")
 
@@ -66,20 +63,26 @@ class DailyGreeting(Star):
     async def send_night(self):
         await self.send_greeting(False)
 
-    # ====================== 测试指令 ======================
+    # ====================== 测试 & 调试指令 ======================
     @filter.command("greeting_test_morning")
     async def test_morning(self, event: AstrMessageEvent):
-        yield event.plain_result("🚀 正在测试发送【早安】消息...")
+        yield event.plain_result("🚀 正在测试发送【早安】...")
         await self.send_greeting(True)
-        yield event.plain_result("✅ 早安测试发送完成！请检查群内消息")
+        yield event.plain_result("✅ 早安测试完成！")
 
     @filter.command("greeting_test_night")
     async def test_night(self, event: AstrMessageEvent):
-        yield event.plain_result("🚀 正在测试发送【晚安】消息...")
+        yield event.plain_result("🚀 正在测试发送【晚安】...")
         await self.send_greeting(False)
-        yield event.plain_result("✅ 晚安测试发送完成！请检查群内消息")
+        yield event.plain_result("✅ 晚安测试完成！")
 
-    # 查看配置
+    @filter.command("greeting_get_umo")
+    async def get_umo(self, event: AstrMessageEvent):
+        """在群里发这条指令，打印真实 umo 格式（发给我看）"""
+        umo = event.unified_msg_origin
+        sender = event.get_sender_id()
+        yield event.plain_result(f"📋 当前群聊真实 umo：\n{umo}\n\n发送者ID: {sender}\n\n请把上面这行 umo 完整复制发给我，我立刻帮你改对！")
+
     @filter.command("greeting_list")
     async def list_config(self, event: AstrMessageEvent):
         groups = self.config.get("group_ids", [])
@@ -87,7 +90,7 @@ class DailyGreeting(Star):
         txt += f"群号：{', '.join(groups) if groups else '空'}\n"
         txt += f"早上：{self.config.get('morning_time')}\n"
         txt += f"晚安：{self.config.get('night_time')}\n"
-        txt += "测试指令：/greeting_test_morning 或 /greeting_test_night"
+        txt += "调试指令：/greeting_get_umo（必发一次）"
         yield event.plain_result(txt)
 
     async def terminate(self):
