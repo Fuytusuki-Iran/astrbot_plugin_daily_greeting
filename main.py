@@ -7,8 +7,8 @@ from astrbot.core.message.message_event_result import MessageChain
 import random
 import asyncio
 
-@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 最终修复版）", "1.5.0-test",
-          "https://github.com/你的/astrbot_plugin_daily_greeting")
+@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 最终修复版）", "1.5.1-test",
+          "https://github.com/你的用户名/astrbot_plugin_daily_greeting")
 class DailyGreeting(Star):
     def __init__(self, context: Context, config):
         super().__init__(context)
@@ -37,7 +37,7 @@ class DailyGreeting(Star):
             logger.warning("问候语列表为空")
             return
         msg = random.choice(msgs)
-        chain = MessageChain().plain(msg)   # 最稳定的初始化方式
+        chain = MessageChain(msg)   # ← 这里已修复为当前版本正确写法
 
         bot_qq = self.config.get("bot_qq", "")
         group_ids = self.config.get("group_ids", [])
@@ -46,7 +46,6 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            # 精确适配你真实的 umo 格式
             umo = f"Chrono_QQ:GroupMessage:{bot_qq}_{gid}"
             
             try:
@@ -78,7 +77,7 @@ class DailyGreeting(Star):
     @filter.command("greeting_get_umo")
     async def get_umo(self, event: AstrMessageEvent):
         umo = event.unified_msg_origin
-        yield event.plain_result(f"📋 当前真实 umo：\n{umo}\n\n（已用于自动拼接，无需再改）")
+        yield event.plain_result(f"📋 当前真实 umo：\n{umo}\n\n（已自动使用，无需修改）")
 
     @filter.command("greeting_list")
     async def list_config(self, event: AstrMessageEvent):
