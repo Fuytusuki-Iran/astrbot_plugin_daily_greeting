@@ -7,7 +7,7 @@ from astrbot.core.message.message_event_result import MessageChain
 import random
 import asyncio
 
-@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 调试版）", "1.4.0-test",
+@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 最终修复版）", "1.5.0-test",
           "https://github.com/你的/astrbot_plugin_daily_greeting")
 class DailyGreeting(Star):
     def __init__(self, context: Context, config):
@@ -16,16 +16,14 @@ class DailyGreeting(Star):
         self.scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
 
         self.start_scheduler()
-        logger.info("【每日问候 调试版】已加载")
+        logger.info("【每日问候 最终修复版】已加载")
         logger.info(f"   配置群号: {self.config.get('group_ids', [])}")
-        logger.info(f"   早上时间: {self.config.get('morning_time')} | 晚安时间: {self.config.get('night_time')}")
-        logger.info("   测试指令：/greeting_test_morning、/greeting_test_night、/greeting_get_umo")
+        logger.info(f"   Bot QQ: {self.config.get('bot_qq')} | 早上: {self.config.get('morning_time')} | 晚安: {self.config.get('night_time')}")
 
     def start_scheduler(self):
         try:
             mh, mm = map(int, self.config["morning_time"].split(":"))
             nh, nm = map(int, self.config["night_time"].split(":"))
-
             self.scheduler.add_job(self.send_morning, CronTrigger(hour=mh, minute=mm))
             self.scheduler.add_job(self.send_night, CronTrigger(hour=nh, minute=nm))
             self.scheduler.start()
@@ -39,16 +37,17 @@ class DailyGreeting(Star):
             logger.warning("问候语列表为空")
             return
         msg = random.choice(msgs)
-        chain = MessageChain().plain(msg)          # ← 正确初始化方式
+        chain = MessageChain().plain(msg)   # 最稳定的初始化方式
 
+        bot_qq = self.config.get("bot_qq", "")
         group_ids = self.config.get("group_ids", [])
-        if not group_ids:
-            logger.warning("群号列表为空，跳过发送")
+        if not bot_qq or not group_ids:
+            logger.warning("bot_qq 或群号列表为空，跳过发送")
             return
 
         for gid in group_ids:
-            # 先尝试最常见的 Chrono_QQ 群聊格式（如果不对，下面调试指令会告诉你真实格式）
-            umo = f"Chrono_QQ:group:{gid}"
+            # 精确适配你真实的 umo 格式
+            umo = f"Chrono_QQ:GroupMessage:{bot_qq}_{gid}"
             
             try:
                 await self.context.send_message(umo, chain)
@@ -63,34 +62,28 @@ class DailyGreeting(Star):
     async def send_night(self):
         await self.send_greeting(False)
 
-    # ====================== 测试 & 调试指令 ======================
+    # ====================== 测试指令 ======================
     @filter.command("greeting_test_morning")
     async def test_morning(self, event: AstrMessageEvent):
-        yield event.plain_result("🚀 正在测试发送【早安】...")
+        yield event.plain_result("🚀 测试早安发送中...")
         await self.send_greeting(True)
         yield event.plain_result("✅ 早安测试完成！")
 
     @filter.command("greeting_test_night")
     async def test_night(self, event: AstrMessageEvent):
-        yield event.plain_result("🚀 正在测试发送【晚安】...")
+        yield event.plain_result("🚀 测试晚安发送中...")
         await self.send_greeting(False)
         yield event.plain_result("✅ 晚安测试完成！")
 
     @filter.command("greeting_get_umo")
     async def get_umo(self, event: AstrMessageEvent):
-        """在群里发这条指令，打印真实 umo 格式（发给我看）"""
         umo = event.unified_msg_origin
-        sender = event.get_sender_id()
-        yield event.plain_result(f"📋 当前群聊真实 umo：\n{umo}\n\n发送者ID: {sender}\n\n请把上面这行 umo 完整复制发给我，我立刻帮你改对！")
+        yield event.plain_result(f"📋 当前真实 umo：\n{umo}\n\n（已用于自动拼接，无需再改）")
 
     @filter.command("greeting_list")
     async def list_config(self, event: AstrMessageEvent):
         groups = self.config.get("group_ids", [])
-        txt = "📋 当前配置：\n"
-        txt += f"群号：{', '.join(groups) if groups else '空'}\n"
-        txt += f"早上：{self.config.get('morning_time')}\n"
-        txt += f"晚安：{self.config.get('night_time')}\n"
-        txt += "调试指令：/greeting_get_umo（必发一次）"
+        txt = f"📋 当前配置：\n群号：{', '.join(groups) if groups else '空'}\nBot QQ：{self.config.get('bot_qq')}\n早上：{self.config.get('morning_time')}\n晚安：{self.config.get('night_time')}"
         yield event.plain_result(txt)
 
     async def terminate(self):
