@@ -3,6 +3,7 @@ from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api import logger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from astrbot.core.message.message_event_result import MessageChain  # 关键：重新引入 MessageChain
 import random
 import asyncio
 
@@ -37,6 +38,10 @@ class DailyGreeting(Star):
             return
         msg = random.choice(msgs)
 
+        # 关键修复1：正确构造 MessageChain 对象（框架要求必须传这个，而非纯字符串）
+        # MessageChain 内部会封装 chain 属性，满足框架解析要求
+        message_chain = MessageChain(msg)
+
         bot_qq = self.config.get("bot_qq", "")
         group_ids = self.config.get("group_ids", [])
         if not bot_qq or not group_ids:
@@ -44,13 +49,15 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            umo = f"Chrono_QQ:GroupMessage:{bot_qq}_{gid}"
+            # 关键修复2：适配仓库中定义的 MessageType（GroupMessage），且简化 session 格式
+            # 格式：Chrono_QQ（bot实例）:GroupMessage（消息类型）:群号（目标ID）
+            umo = f"Chrono_QQ:GroupMessage:{gid}"
             
             try:
-                # 关键修复：直接传入字符串（最兼容当前版本）
-                await self.context.send_message(umo, msg)
+                # 传入 MessageChain 对象，而非纯字符串
+                await self.context.send_message(umo, message_chain)
                 logger.info(f"✅ 已向群 {gid} 发送 {'早安' if is_morning else '晚安'}：{msg[:30]}...")
-                await asyncio.sleep(1.2)
+                await asyncio.sleep(1.2)  # 防风控
             except Exception as e:
                 logger.error(f"向群 {gid} 发送失败: {e}")
 
