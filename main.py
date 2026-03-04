@@ -40,7 +40,8 @@ class DailyGreeting(Star):
             logger.warning("问候语列表为空")
             return
         msg = random.choice(msgs)
-        chain = MessageChain().plain(msg)
+        # 修复关键：移除不存在的 plain() 方法，直接初始化 MessageChain 并传入文本
+        chain = MessageChain(msg)
 
         group_ids = self.config.get("group_ids", [])
         if not group_ids:
