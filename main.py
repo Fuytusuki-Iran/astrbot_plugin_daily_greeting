@@ -6,17 +6,24 @@ from apscheduler.triggers.cron import CronTrigger
 import random
 import asyncio
 
-# 核心：定义兼容 toDict() 方法的消息对象（适配 aiocqhttp 协议）
+# 终极兼容：同时实现 chain 属性 + toDict() 方法
 class CQMessage:
     def __init__(self, text):
         self.text = text
+        # 适配 astrbot 上层：添加 chain 属性（指向消息文本）
+        self.chain = text
+        # 适配 aiocqhttp 底层：预生成 CQ 码格式
+        self.cq_data = [{"type": "text", "data": {"text": text}}]
 
-    # 模拟框架要求的 toDict() 方法，生成 aiocqhttp 识别的消息格式
+    # 适配 aiocqhttp 底层：实现 toDict() 方法
     def toDict(self):
-        # 返回 CQ 码格式的消息体（纯文本）
-        return [{"type": "text", "data": {"text": self.text}}]
+        return self.cq_data
 
-@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 最终稳定版）", "1.5.2-test",
+    # 兜底：模拟 MessageChain 的 __str__ 方法（防止框架其他逻辑报错）
+    def __str__(self):
+        return self.text
+
+@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 终极兼容版）", "1.5.3-test",
           "https://github.com/你的用户名/astrbot_plugin_daily_greeting")
 class DailyGreeting(Star):
     def __init__(self, context: Context, config):
@@ -25,7 +32,7 @@ class DailyGreeting(Star):
         self.scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
 
         self.start_scheduler()
-        logger.info("【每日问候 最终稳定版】已加载")
+        logger.info("【每日问候 终极兼容版】已加载")
         logger.info(f"   配置群号: {self.config.get('group_ids', [])}")
         logger.info(f"   Bot QQ: {self.config.get('bot_qq')} | 早上: {self.config.get('morning_time')} | 晚安: {self.config.get('night_time')}")
 
@@ -47,7 +54,7 @@ class DailyGreeting(Star):
             return
         msg_text = random.choice(msgs)
 
-        # 关键1：构造带 toDict() 方法的合法消息对象
+        # 关键：构造双兼容的消息对象（有 chain + toDict()）
         msg_obj = CQMessage(msg_text)
 
         bot_qq = self.config.get("bot_qq", "")
@@ -57,16 +64,19 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            # 关键2：适配 v4.18.3 + Chrono_QQ 的三段式 session（GroupMessage 为仓库定义的合法类型）
+            # 最终定型的 session 格式（Chrono_QQ + GroupMessage + 群号）
             umo = f"Chrono_QQ:GroupMessage:{gid}"
             
             try:
-                # 传入自定义的消息对象（有 toDict() 方法）
+                # 发送双兼容的消息对象
                 await self.context.send_message(umo, msg_obj)
                 logger.info(f"✅ 已向群 {gid} 发送 {'早安' if is_morning else '晚安'}：{msg_text[:30]}...")
                 await asyncio.sleep(1.2)  # 防风控
             except Exception as e:
                 logger.error(f"向群 {gid} 发送失败: {e}")
+                # 兜底：打印完整报错栈，便于定位最后问题
+                import traceback
+                logger.error(f"完整报错栈：\n{traceback.format_exc()}")
 
     async def send_morning(self):
         await self.send_greeting(True)
