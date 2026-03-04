@@ -49,9 +49,9 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            # 最终核心修复：使用 bot 实例名 + 类型 + 群号的三段式格式
-            # 格式：Chrono_QQ（bot实例名）:group（类型）:群号（ID）
-            umo = f"Chrono_QQ:group:{gid}"
+            # 最终核心修复：直接用纯数字群号作为 session（匹配日志中的 1071711189 格式）
+            # 去掉所有前缀，仅保留群号（int转str，避免类型错误）
+            umo = str(gid)
             
             try:
                 await self.context.send_message(umo, chain)
