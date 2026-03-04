@@ -2,5 +2,5 @@ name: astrbot_plugin_daily_greeting
 display_name: 每日定时问候
 desc: 定时在指定QQ群发送早安和下午好消息，支持随机问候语和群内绑定
 author: 你自己（或你的ID）
-version: 1.0.0
+version: 1.0.1
 repo: https://github.com/你的用户名/astrbot_plugin_daily_greeting
