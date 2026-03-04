@@ -3,9 +3,18 @@ from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api import logger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from astrbot.core.message.message_event_result import MessageChain  # 关键：重新引入 MessageChain
 import random
 import asyncio
+
+# 核心：定义兼容 toDict() 方法的消息对象（适配 aiocqhttp 协议）
+class CQMessage:
+    def __init__(self, text):
+        self.text = text
+
+    # 模拟框架要求的 toDict() 方法，生成 aiocqhttp 识别的消息格式
+    def toDict(self):
+        # 返回 CQ 码格式的消息体（纯文本）
+        return [{"type": "text", "data": {"text": self.text}}]
 
 @register("daily_greeting", "你自己", "每日定时问候（早安+晚安 最终稳定版）", "1.5.2-test",
           "https://github.com/你的用户名/astrbot_plugin_daily_greeting")
@@ -36,11 +45,10 @@ class DailyGreeting(Star):
         if not msgs:
             logger.warning("问候语列表为空")
             return
-        msg = random.choice(msgs)
+        msg_text = random.choice(msgs)
 
-        # 关键修复1：正确构造 MessageChain 对象（框架要求必须传这个，而非纯字符串）
-        # MessageChain 内部会封装 chain 属性，满足框架解析要求
-        message_chain = MessageChain(msg)
+        # 关键1：构造带 toDict() 方法的合法消息对象
+        msg_obj = CQMessage(msg_text)
 
         bot_qq = self.config.get("bot_qq", "")
         group_ids = self.config.get("group_ids", [])
@@ -49,14 +57,13 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            # 关键修复2：适配仓库中定义的 MessageType（GroupMessage），且简化 session 格式
-            # 格式：Chrono_QQ（bot实例）:GroupMessage（消息类型）:群号（目标ID）
+            # 关键2：适配 v4.18.3 + Chrono_QQ 的三段式 session（GroupMessage 为仓库定义的合法类型）
             umo = f"Chrono_QQ:GroupMessage:{gid}"
             
             try:
-                # 传入 MessageChain 对象，而非纯字符串
-                await self.context.send_message(umo, message_chain)
-                logger.info(f"✅ 已向群 {gid} 发送 {'早安' if is_morning else '晚安'}：{msg[:30]}...")
+                # 传入自定义的消息对象（有 toDict() 方法）
+                await self.context.send_message(umo, msg_obj)
+                logger.info(f"✅ 已向群 {gid} 发送 {'早安' if is_morning else '晚安'}：{msg_text[:30]}...")
                 await asyncio.sleep(1.2)  # 防风控
             except Exception as e:
                 logger.error(f"向群 {gid} 发送失败: {e}")
