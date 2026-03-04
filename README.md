@@ -5,7 +5,7 @@ AstrBot 日常早安/晚安插件
 使用方法
 
 前往插件配置中填写群号，设定时间和发言
-使用/greeting_test_morning和/greeting_test_night
+使用/greeting_test_morning和/greeting_test_night测试
 
 # Supports
 
