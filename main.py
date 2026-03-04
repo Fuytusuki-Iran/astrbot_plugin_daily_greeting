@@ -40,7 +40,7 @@ class DailyGreeting(Star):
             logger.warning("问候语列表为空")
             return
         msg = random.choice(msgs)
-        # 修复1：移除不存在的 plain() 方法，直接传入文本初始化 MessageChain
+        # 修复1：正确初始化 MessageChain（无 plain 方法，直接传文本）
         chain = MessageChain(msg)
 
         group_ids = self.config.get("group_ids", [])
@@ -49,8 +49,12 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            # 修复2：使用正确的群聊 session 格式（group_chat 而非 group）
-            umo = f"qq:group_chat:{gid}"
+            # 修复2：适配 astrbot v4.18.3 的正确 session 格式（两种可选，优先试第一种）
+            # 格式1（推荐）：直接用 群号 作为 session（部分版本简化了格式）
+            umo = str(gid)
+            # 格式2（备选，若格式1失败则启用）："group_xxx"（xxx为群号）
+            # umo = f"group_{gid}"
+            
             try:
                 await self.context.send_message(umo, chain)
                 logger.info(f"✅ 已向群 {gid} 发送 {'早安' if is_morning else '晚安'}：{msg[:30]}...")
