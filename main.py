@@ -40,7 +40,7 @@ class DailyGreeting(Star):
             logger.warning("问候语列表为空")
             return
         msg = random.choice(msgs)
-        # 修复关键：移除不存在的 plain() 方法，直接初始化 MessageChain 并传入文本
+        # 修复1：正确初始化 MessageChain
         chain = MessageChain(msg)
 
         group_ids = self.config.get("group_ids", [])
@@ -49,7 +49,8 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            umo = f"qq:group:{gid}"
+            # 修复2：使用正确的 session 字符串格式（qq:group_chat:群号）
+            umo = f"qq:group_chat:{gid}"
             try:
                 await self.context.send_message(umo, chain)
                 logger.info(f"✅ 已向群 {gid} 发送 {'早安' if is_morning else '下午好'}：{msg[:30]}...")
