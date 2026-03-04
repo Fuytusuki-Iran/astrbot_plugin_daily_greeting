@@ -3,20 +3,17 @@
     "description": "要发送问候的 QQ 群号列表（多个群号）",
     "type": "list",
     "default": [],
-    "items": {
-      "type": "string",
-      "description": "QQ群号（字符串格式）"
-    }
+    "items": { "type": "string", "description": "QQ群号" }
   },
   "morning_time": {
-    "description": "早上问候时间 (HH:MM，24小时制)",
+    "description": "早上问候时间 (HH:MM)",
     "type": "string",
     "default": "08:00"
   },
   "night_time": {
-    "description": "晚安问候时间 (HH:MM，24小时制)",
+    "description": "晚安问候时间 (HH:MM，建议 23:00)",
     "type": "string",
-    "default": "17:30"
+    "default": "23:00"
   },
   "morning_msgs": {
     "description": "早安问候语列表（随机挑选一条）",
