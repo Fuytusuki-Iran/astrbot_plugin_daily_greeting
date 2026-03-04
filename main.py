@@ -49,9 +49,9 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            # 修复核心：适配 v4.18.3 三段式 session 格式（平台:类型:ID）
-            # 经过验证，该版本群聊类型为 "group"（而非 group_chat）
-            umo = f"qq:group:{gid}"  # 三段式：qq（平台）:group（类型）:群号（ID）
+            # 最终核心修复：使用 bot 实例名 + 类型 + 群号的三段式格式
+            # 格式：Chrono_QQ（bot实例名）:group（类型）:群号（ID）
+            umo = f"Chrono_QQ:group:{gid}"
             
             try:
                 await self.context.send_message(umo, chain)
