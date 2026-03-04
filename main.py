@@ -3,11 +3,10 @@ from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api import logger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from astrbot.core.message.message_event_result import MessageChain
 import random
 import asyncio
 
-@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 最终修复版）", "1.5.1-test",
+@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 最终稳定版）", "1.5.2-test",
           "https://github.com/你的用户名/astrbot_plugin_daily_greeting")
 class DailyGreeting(Star):
     def __init__(self, context: Context, config):
@@ -16,7 +15,7 @@ class DailyGreeting(Star):
         self.scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
 
         self.start_scheduler()
-        logger.info("【每日问候 最终修复版】已加载")
+        logger.info("【每日问候 最终稳定版】已加载")
         logger.info(f"   配置群号: {self.config.get('group_ids', [])}")
         logger.info(f"   Bot QQ: {self.config.get('bot_qq')} | 早上: {self.config.get('morning_time')} | 晚安: {self.config.get('night_time')}")
 
@@ -37,7 +36,6 @@ class DailyGreeting(Star):
             logger.warning("问候语列表为空")
             return
         msg = random.choice(msgs)
-        chain = MessageChain(msg)   # ← 这里已修复为当前版本正确写法
 
         bot_qq = self.config.get("bot_qq", "")
         group_ids = self.config.get("group_ids", [])
@@ -49,7 +47,8 @@ class DailyGreeting(Star):
             umo = f"Chrono_QQ:GroupMessage:{bot_qq}_{gid}"
             
             try:
-                await self.context.send_message(umo, chain)
+                # 关键修复：直接传入字符串（最兼容当前版本）
+                await self.context.send_message(umo, msg)
                 logger.info(f"✅ 已向群 {gid} 发送 {'早安' if is_morning else '晚安'}：{msg[:30]}...")
                 await asyncio.sleep(1.2)
             except Exception as e:
@@ -73,11 +72,6 @@ class DailyGreeting(Star):
         yield event.plain_result("🚀 测试晚安发送中...")
         await self.send_greeting(False)
         yield event.plain_result("✅ 晚安测试完成！")
-
-    @filter.command("greeting_get_umo")
-    async def get_umo(self, event: AstrMessageEvent):
-        umo = event.unified_msg_origin
-        yield event.plain_result(f"📋 当前真实 umo：\n{umo}\n\n（已自动使用，无需修改）")
 
     @filter.command("greeting_list")
     async def list_config(self, event: AstrMessageEvent):
