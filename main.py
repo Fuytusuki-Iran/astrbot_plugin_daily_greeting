@@ -6,21 +6,26 @@ from apscheduler.triggers.cron import CronTrigger
 import random
 import asyncio
 
-# 核心：构造 aiocqhttp 原生的消息片段类（每个片段都有 toDict()）
-class OneBotSegment:
-    def __init__(self, type_, data):
-        self.type = type_
-        self.data = data
+# 终极兼容：复刻框架原生 MessageChain 结构
+class NativeMessageChain:
+    def __init__(self, text):
+        # 1. 适配上层逻辑：添加 chain 属性（指向片段列表）
+        self.chain = [self.TextSegment(text)]
+        
+    # 2. 适配底层拆解：定义片段类（带 toDict()）
+    class TextSegment:
+        def __init__(self, text):
+            self.type = "text"
+            self.data = {"text": text}
+        
+        def toDict(self):
+            return {"type": self.type, "data": self.data}
+        
+        # 兜底：模拟框架片段的其他属性
+        def __str__(self):
+            return self.data["text"]
 
-    def toDict(self):
-        return {"type": self.type, "data": self.data}
-
-# 封装纯文本消息链（多个 OneBotSegment 组成）
-def build_text_chain(text):
-    # 消息链是 OneBotSegment 对象的列表（框架原生格式）
-    return [OneBotSegment("text", {"text": text})]
-
-@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 原生适配版）", "1.5.4-final",
+@register("daily_greeting", "你自己", "每日定时问候（早安+晚安 最终绝杀版）", "1.5.5-final",
           "https://github.com/你的用户名/astrbot_plugin_daily_greeting")
 class DailyGreeting(Star):
     def __init__(self, context: Context, config):
@@ -29,7 +34,7 @@ class DailyGreeting(Star):
         self.scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
 
         self.start_scheduler()
-        logger.info("【每日问候 原生适配版】已加载")
+        logger.info("【每日问候 最终绝杀版】已加载")
         logger.info(f"   配置群号: {self.config.get('group_ids', [])}")
         logger.info(f"   Bot QQ: {self.config.get('bot_qq')} | 早上: {self.config.get('morning_time')} | 晚安: {self.config.get('night_time')}")
 
@@ -51,8 +56,8 @@ class DailyGreeting(Star):
             return
         msg_text = random.choice(msgs)
 
-        # 关键1：构造 aiocqhttp 原生消息链（OneBotSegment 列表）
-        message_chain = build_text_chain(msg_text)
+        # 关键：构造终极兼容的消息对象
+        message_chain = NativeMessageChain(msg_text)
 
         bot_qq = self.config.get("bot_qq", "")
         group_ids = self.config.get("group_ids", [])
@@ -61,11 +66,11 @@ class DailyGreeting(Star):
             return
 
         for gid in group_ids:
-            # 关键2：最终定型的 session 格式（适配 v4.18.3 + Chrono_QQ）
+            # 最终定型的 session 格式
             umo = f"Chrono_QQ:GroupMessage:{gid}"
             
             try:
-                # 发送原生消息链（框架直接识别，不拆解）
+                # 发送终极兼容对象
                 await self.context.send_message(umo, message_chain)
                 logger.info(f"✅ 已向群 {gid} 发送 {'早安' if is_morning else '晚安'}：{msg_text[:30]}...")
                 await asyncio.sleep(1.2)  # 防风控
